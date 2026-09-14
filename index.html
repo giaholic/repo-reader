@@ -38,7 +38,10 @@
             <div id="repo-meta" class="repo-meta"></div>
           </div>
           <nav aria-label="Arquivos">
-            <div class="tree-title">Arquivos</div>
+            <div class="tree-header">
+              <div class="tree-title">Ordem de leitura</div>
+              <button id="reset-order-button" class="text-button" type="button" title="Restaurar ordem alfabética">Restaurar</button>
+            </div>
             <div id="file-tree" class="file-tree"></div>
           </nav>
         </aside>
@@ -46,7 +49,11 @@
         <article class="content-panel">
           <div class="content-toolbar">
             <div id="breadcrumb" class="breadcrumb">README</div>
-            <a id="github-link" href="#" target="_blank" rel="noreferrer">Ver no GitHub ↗</a>
+            <div class="reader-actions">
+              <button id="previous-file-button" class="nav-button" type="button" aria-label="Documento anterior">←</button>
+              <button id="next-file-button" class="nav-button" type="button" aria-label="Próximo documento">→</button>
+              <a id="github-link" href="#" target="_blank" rel="noreferrer">GitHub ↗</a>
+            </div>
           </div>
           <div id="loading" class="loading" hidden>Carregando…</div>
           <div id="file-content" class="file-content"></div>
