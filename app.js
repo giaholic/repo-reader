@@ -16,9 +16,14 @@ const elements = {
   loading: document.querySelector("#loading"),
   back: document.querySelector("#back-button"),
   theme: document.querySelector("#theme-button"),
+  resetOrder: document.querySelector("#reset-order-button"),
+  previousFile: document.querySelector("#previous-file-button"),
+  nextFile: document.querySelector("#next-file-button"),
 };
 
 let currentRepo = null;
+let currentFiles = [];
+let currentPath = null;
 
 function parseRepository(value) {
   const cleaned = value.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/, "").replace(/^\/+|\/+$/g, "");
@@ -60,26 +65,79 @@ function renderRepository(repo, tree) {
   elements.name.textContent = repo.name;
   elements.description.textContent = repo.description || "Sem descrição.";
   elements.meta.innerHTML = `<span>${escapeHtml(repo.language || "—")}</span><span>★ ${repo.stargazers_count}</span><span>${escapeHtml(repo.default_branch)}</span>`;
+  const files = tree.filter((item) => item.type === "blob").sort((a, b) => a.path.localeCompare(b.path));
+  currentFiles = applySavedOrder(files);
+  renderFileTree();
+}
+
+function renderFileTree() {
   elements.tree.replaceChildren();
-  tree.filter((item) => item.type === "blob").sort((a, b) => a.path.localeCompare(b.path)).forEach((item) => {
+  currentFiles.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "tree-row";
+
+    const number = document.createElement("span");
+    number.className = "order-number";
+    number.textContent = index + 1;
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "tree-item";
     button.textContent = item.path;
     button.title = item.path;
     button.dataset.path = item.path;
+    button.classList.toggle("active", item.path === currentPath);
     button.addEventListener("click", () => openFile(item.path));
-    elements.tree.append(button);
+
+    const up = createMoveButton("↑", "Mover para cima", index, -1);
+    const down = createMoveButton("↓", "Mover para baixo", index, 1);
+    up.disabled = index === 0;
+    down.disabled = index === currentFiles.length - 1;
+    row.append(number, button, up, down);
+    elements.tree.append(row);
   });
 }
 
+function createMoveButton(label, title, index, direction) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "move-button";
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  button.addEventListener("click", () => moveFile(index, direction));
+  return button;
+}
+
+function moveFile(index, direction) {
+  const destination = index + direction;
+  if (destination < 0 || destination >= currentFiles.length) return;
+  [currentFiles[index], currentFiles[destination]] = [currentFiles[destination], currentFiles[index]];
+  saveOrder();
+  renderFileTree();
+  updateNavigation();
+}
+
+function applySavedOrder(files) {
+  const saved = JSON.parse(localStorage.getItem(orderStorageKey()) || "[]");
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const ordered = saved.map((path) => byPath.get(path)).filter(Boolean);
+  const included = new Set(ordered.map((file) => file.path));
+  return [...ordered, ...files.filter((file) => !included.has(file.path))];
+}
+
+function orderStorageKey() { return `repo-reader-order:${currentRepo.full_name}`; }
+function saveOrder() { localStorage.setItem(orderStorageKey(), JSON.stringify(currentFiles.map((file) => file.path))); }
+
 async function openFile(path) {
   if (!currentRepo) return;
+  currentPath = path;
   setLoading(true);
   elements.content.replaceChildren();
   elements.breadcrumb.textContent = path;
   elements.githubLink.href = `${currentRepo.html_url}/blob/${currentRepo.default_branch}/${path.split("/").map(encodeURIComponent).join("/")}`;
   document.querySelectorAll(".tree-item").forEach((item) => item.classList.toggle("active", item.dataset.path === path));
+  updateNavigation();
   try {
     const file = await github(`/repos/${currentRepo.full_name}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(currentRepo.default_branch)}`);
     if (file.size > 1_000_000 || !file.content) return renderEmpty("Este arquivo é grande demais ou não pode ser exibido como texto.");
@@ -96,6 +154,18 @@ async function openFile(path) {
   } finally {
     setLoading(false);
   }
+}
+
+function updateNavigation() {
+  const index = currentFiles.findIndex((file) => file.path === currentPath);
+  elements.previousFile.disabled = index <= 0;
+  elements.nextFile.disabled = index < 0 || index >= currentFiles.length - 1;
+}
+
+function openRelativeFile(offset) {
+  const index = currentFiles.findIndex((file) => file.path === currentPath);
+  const target = currentFiles[index + offset];
+  if (target) openFile(target.path);
 }
 
 function renderMarkdown(source) {
@@ -144,11 +214,23 @@ elements.form.addEventListener("submit", async (event) => {
 
 elements.back.addEventListener("click", () => {
   currentRepo = null;
+  currentFiles = [];
+  currentPath = null;
   elements.reader.hidden = true;
   elements.welcome.hidden = false;
   history.replaceState(null, "", location.pathname);
   elements.input.focus();
 });
+
+elements.resetOrder.addEventListener("click", () => {
+  currentFiles.sort((a, b) => a.path.localeCompare(b.path));
+  localStorage.removeItem(orderStorageKey());
+  renderFileTree();
+  updateNavigation();
+});
+
+elements.previousFile.addEventListener("click", () => openRelativeFile(-1));
+elements.nextFile.addEventListener("click", () => openRelativeFile(1));
 
 elements.theme.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
