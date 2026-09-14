@@ -66,14 +66,25 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .repo-heading h2 { margin: 14px 0 6px; font-family: Georgia, serif; font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
 .repo-heading p { margin: 0; color: var(--muted); font-size: 13px; }
 .repo-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 12px; }
-.tree-title { margin: 22px 8px 8px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.tree-item { width: 100%; padding: 7px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; text-align: left; font: 13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree-item:hover, .tree-item.active { background: var(--soft); color: var(--text); }
+.tree-header { display: flex; align-items: center; justify-content: space-between; margin: 22px 8px 8px; }
+.tree-title { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.text-button { padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 11px; }
+.tree-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px 24px; align-items: center; border-radius: 5px; }
+.tree-row:hover, .tree-row:has(.tree-item.active) { background: var(--soft); }
+.order-number { color: var(--muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+.tree-item { min-width: 0; padding: 7px 4px; border: 0; background: transparent; color: var(--muted); cursor: pointer; text-align: left; font: 13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-item:hover, .tree-item.active { color: var(--text); }
+.move-button { width: 24px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.move-button:hover { color: var(--text); }
+.move-button:disabled { opacity: .2; cursor: default; }
 
 .content-panel { min-width: 0; padding: 0 clamp(24px, 6vw, 88px) 80px; }
 .content-toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; gap: 20px; padding: 22px 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(10px); }
 .breadcrumb { min-width: 0; color: var(--muted); font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .content-toolbar a { flex: none; color: var(--accent); font-size: 13px; text-decoration: none; }
+.reader-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.nav-button { width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); cursor: pointer; }
+.nav-button:disabled { opacity: .35; cursor: default; }
 .file-content { max-width: 860px; padding-top: 46px; }
 .file-content h1, .file-content h2, .file-content h3 { font-family: Georgia, serif; font-weight: 500; line-height: 1.25; letter-spacing: -.015em; }
 .file-content h1 { font-size: 38px; }
