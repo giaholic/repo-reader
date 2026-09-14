@@ -6,11 +6,15 @@ Uma interface web minimalista e somente leitura para explorar repositórios púb
 
 - Abre um repositório por URL ou `owner/repo`
 - Exibe metadados e a árvore completa de arquivos
+- Permite definir uma ordem de leitura personalizada para cada repositório
+- Navega para o documento anterior ou seguinte nessa sequência
 - Renderiza Markdown em uma área de leitura limpa
 - Exibe arquivos de texto e código
 - Oferece temas claro e escuro
 - Funciona em desktop e dispositivos móveis
 - Não exige instalação, build ou dependências
+
+A ordem escolhida é salva localmente no navegador e pode ser restaurada para a ordem alfabética a qualquer momento.
 
 ## Uso local
 
