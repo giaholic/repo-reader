@@ -78,6 +78,7 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .repo-heading p { margin: 0; color: var(--muted); font-size: 13px; }
 .repo-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 12px; }
 .tree-header { display: flex; align-items: center; justify-content: space-between; margin: 22px 8px 8px; }
+.tree-actions { display: flex; align-items: center; gap: 12px; }
 .tree-title { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .text-button { padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 11px; }
 .tree-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px 24px; align-items: center; border-radius: 5px; }
