@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Uma interface minimalista para leitura de repositórios públicos e privados do GitHub." />
     <title>Repo Reader</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <header class="topbar">
@@ -47,7 +47,8 @@
       </section>
 
       <section id="reader" class="reader" hidden>
-        <aside class="sidebar" aria-label="Navegação do repositório">
+        <aside id="repository-sidebar" class="sidebar" aria-label="Navegação do repositório">
+          <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-controls="repository-sidebar" aria-expanded="true" aria-label="Recolher menu lateral" title="Recolher menu lateral">‹</button>
           <div class="repo-heading">
             <button id="back-button" class="back-button" type="button">← Trocar repositório</button>
             <h2 id="repo-name"></h2>
@@ -81,6 +82,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>
