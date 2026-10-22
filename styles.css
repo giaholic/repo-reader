@@ -69,9 +69,16 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .token-form input { min-width: 0; flex: 1; padding: 10px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; outline: none; }
 .token-form button { padding: 10px 16px; border: 0; border-radius: 6px; background: var(--text); color: var(--bg); cursor: pointer; font-weight: 650; }
 
-.reader { min-height: calc(100vh - 64px); grid-template-columns: 300px minmax(0, 1fr); }
+.reader { min-height: calc(100vh - 64px); grid-template-columns: 300px minmax(0, 1fr); transition: grid-template-columns .2s ease; }
+.reader.sidebar-collapsed { grid-template-columns: 52px minmax(0, 1fr); }
 .reader:not([hidden]) { display: grid; }
-.sidebar { padding: 28px 22px; border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
+.sidebar { position: relative; padding: 28px 22px; border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
+.sidebar-toggle { position: absolute; z-index: 2; top: 18px; right: 14px; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 20px; line-height: 1; }
+.sidebar-toggle:hover { border-color: var(--muted); }
+.repo-heading { padding-right: 32px; }
+.reader.sidebar-collapsed .sidebar { padding: 0; overflow: hidden; }
+.reader.sidebar-collapsed .sidebar > :not(.sidebar-toggle) { display: none; }
+.reader.sidebar-collapsed .sidebar-toggle { top: 18px; right: 11px; }
 .repo-heading { padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .back-button { padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; }
 .repo-heading h2 { margin: 14px 0 6px; font-family: Georgia, serif; font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
@@ -123,6 +130,8 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
   .connection-status { display: none; }
   .reader:not([hidden]) { display: block; }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+  .reader.sidebar-collapsed .sidebar { min-height: 52px; border-bottom: 1px solid var(--line); }
+  .reader.sidebar-collapsed .sidebar-toggle { top: 12px; right: 14px; }
   .file-tree { max-height: 220px; overflow-y: auto; }
   .content-panel { padding: 0 20px 60px; }
   .content-toolbar { top: 0; }
