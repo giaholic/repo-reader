@@ -44,3 +44,31 @@ Sem token, a aplicação continua lendo repositórios públicos pela API do GitH
 ## Publicação
 
 O projeto é estático e pode ser publicado diretamente com GitHub Pages a partir da branch principal.
+
+
+## Ordem de leitura persistente
+
+A ordem ajustada pela interface é salva imediatamente no navegador para cada repositório.
+
+Para tornar a ordem portátil e versionada:
+
+1. Organize os arquivos no Repo Reader.
+2. Clique em **Exportar**.
+3. Adicione o arquivo baixado como `.repo-reader.json` na raiz do repositório.
+4. Faça commit do arquivo.
+
+Ao abrir o repositório em outro navegador ou dispositivo, o Repo Reader carrega automaticamente essa ordem. Uma ordem local existente tem prioridade, permitindo novos ajustes antes de outra exportação.
+
+Formato:
+
+```json
+{
+  "version": 1,
+  "repository": "owner/repository",
+  "order": [
+    "README.md",
+    "docs/overview.md",
+    "docs/setup.md"
+  ]
+}
+```
