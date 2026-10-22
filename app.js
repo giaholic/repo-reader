@@ -20,6 +20,7 @@ const elements = {
   exportOrder: document.querySelector("#export-order-button"),
   previousFile: document.querySelector("#previous-file-button"),
   nextFile: document.querySelector("#next-file-button"),
+  sidebarToggle: document.querySelector("#sidebar-toggle"),
   tokenInput: document.querySelector("#token-input"),
   connect: document.querySelector("#connect-button"),
   disconnect: document.querySelector("#disconnect-button"),
@@ -245,6 +246,15 @@ async function openFile(path) {
   }
 }
 
+function setSidebarCollapsed(collapsed) {
+  elements.reader.classList.toggle("sidebar-collapsed", collapsed);
+  elements.sidebarToggle.textContent = collapsed ? "›" : "‹";
+  elements.sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+  elements.sidebarToggle.setAttribute("aria-label", collapsed ? "Expandir menu lateral" : "Recolher menu lateral");
+  elements.sidebarToggle.title = collapsed ? "Expandir menu lateral" : "Recolher menu lateral";
+  localStorage.setItem("repo-reader-sidebar-collapsed", String(collapsed));
+}
+
 function updateNavigation() {
   const index = currentFiles.findIndex((file) => file.path === currentPath);
   elements.previousFile.disabled = index <= 0;
@@ -381,6 +391,9 @@ elements.exportOrder.addEventListener("click", exportOrder);
 
 elements.previousFile.addEventListener("click", () => openRelativeFile(-1));
 elements.nextFile.addEventListener("click", () => openRelativeFile(1));
+elements.sidebarToggle.addEventListener("click", () => {
+  setSidebarCollapsed(!elements.reader.classList.contains("sidebar-collapsed"));
+});
 elements.connect.addEventListener("click", connectGitHub);
 elements.disconnect.addEventListener("click", disconnectGitHub);
 elements.tokenInput.addEventListener("keydown", (event) => {
@@ -395,6 +408,7 @@ elements.theme.addEventListener("click", () => {
 
 document.documentElement.dataset.theme = localStorage.getItem("repo-reader-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 updateConnectionStatus();
+setSidebarCollapsed(localStorage.getItem("repo-reader-sidebar-collapsed") === "true");
 if (location.hash.length > 1) {
   elements.input.value = decodeURIComponent(location.hash.slice(1));
   openRepository(elements.input.value).catch((error) => { elements.error.textContent = error.message; setLoading(false); });
