@@ -228,7 +228,10 @@ async function openFile(path) {
     const file = await github(`/repos/${currentRepo.full_name}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(currentRepo.default_branch)}`);
     if (file.size > 1_000_000 || !file.content) return renderEmpty("Este arquivo é grande demais ou não pode ser exibido como texto.");
     const text = decodeBase64(file.content);
-    if (/\.md$/i.test(path)) elements.content.innerHTML = renderMarkdown(text);
+    if (/\.md$/i.test(path)) {
+      elements.content.innerHTML = renderMarkdown(text);
+      bindInternalLinks();
+    }
     else {
       const pre = document.createElement("pre");
       pre.className = "plain-file";
@@ -254,14 +257,69 @@ function openRelativeFile(offset) {
   if (target) openFile(target.path);
 }
 
+function resolveRepositoryTarget(target) {
+  const decoded = target.replace(/&amp;/g, "&");
+  const hashIndex = decoded.indexOf("#");
+  const withoutHash = hashIndex >= 0 ? decoded.slice(0, hashIndex) : decoded;
+  const pathOnly = withoutHash.split("?")[0];
+  if (!pathOnly) return currentPath;
+
+  const segments = pathOnly.startsWith("/")
+    ? pathOnly.slice(1).split("/")
+    : [...(currentPath || "").split("/").slice(0, -1), ...pathOnly.split("/")];
+
+  const normalized = [];
+  segments.forEach((segment) => {
+    if (!segment || segment === ".") return;
+    if (segment === "..") normalized.pop();
+    else normalized.push(segment);
+  });
+  return normalized.join("/");
+}
+
+function createMarkdownLink(label, target) {
+  if (/^(https?:\/\/|mailto:)/i.test(target)) {
+    return '<a href="' + target + '" target="_blank" rel="noreferrer">' + label + "</a>";
+  }
+  if (target.startsWith("#")) return '<a href="' + target + '">' + label + "</a>";
+
+  const path = resolveRepositoryTarget(target);
+  return '<a href="#" data-repo-path="' + escapeHtml(path) + '">' + label + "</a>";
+}
+
+function bindInternalLinks() {
+  elements.content.querySelectorAll("[data-repo-path]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openFile(link.dataset.repoPath);
+    });
+  });
+}
+
 function renderMarkdown(source) {
   const escaped = escapeHtml(source);
   const codeBlocks = [];
-  let html = escaped.replace(/```([\w-]*)\n([\s\S]*?)```/g, (_, language, code) => {
-    const token = `%%CODEBLOCK${codeBlocks.length}%%`;
-    codeBlocks.push(`<pre><code${language ? ` data-language="${language}"` : ""}>${code.trimEnd()}</code></pre>`);
+  const links = [];
+  let html = escaped.replace(/\x60\x60\x60([\w-]*)\n([\s\S]*?)\x60\x60\x60/g, (_, language, code) => {
+    const token = "%%CODEBLOCK" + codeBlocks.length + "%%";
+    codeBlocks.push("<pre><code" + (language ? ' data-language="' + language + '"' : "") + ">" + code.trimEnd() + "</code></pre>");
     return token;
   });
+
+  html = html.replace(/(^|[^!])\[([^\]]+)\]\(([^)\s]+)\)/g, (_, prefix, label, target) => {
+    const token = "%%LINK" + links.length + "%%";
+    links.push(createMarkdownLink(label, target));
+    return prefix + token;
+  });
+
+  html = html.replace(/https?:\/\/[^\s<]+/g, (url) => {
+    const trailing = url.match(/[.,;:!?]+$/)?.[0] || "";
+    const cleanUrl = trailing ? url.slice(0, -trailing.length) : url;
+    const token = "%%LINK" + links.length + "%%";
+    links.push('<a href="' + cleanUrl + '" target="_blank" rel="noreferrer">' + cleanUrl + "</a>");
+    return token + trailing;
+  });
+
   html = html
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
@@ -270,13 +328,18 @@ function renderMarkdown(source) {
     .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
     .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\x60([^\x60]+)\x60/g, "<code>$1</code>")
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
     .split(/\n{2,}/)
-    .map((block) => /^(<h\d|<ul|<blockquote|%%CODEBLOCK)/.test(block) ? block : `<p>${block.replace(/\n/g, "<br>")}</p>`)
+    .map((block) => /^(<h\d|<ul|<blockquote|%%CODEBLOCK)/.test(block) ? block : "<p>" + block.replace(/\n/g, "<br>") + "</p>")
     .join("\n");
-  codeBlocks.forEach((block, index) => { html = html.replace(`<p>%%CODEBLOCK${index}%%</p>`, block).replace(`%%CODEBLOCK${index}%%`, block); });
+
+  codeBlocks.forEach((block, index) => {
+    html = html.replace("<p>%%CODEBLOCK" + index + "%%</p>", block).replace("%%CODEBLOCK" + index + "%%", block);
+  });
+  links.forEach((link, index) => {
+    html = html.replace("%%LINK" + index + "%%", link);
+  });
   return html;
 }
 
