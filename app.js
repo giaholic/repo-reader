@@ -17,6 +17,7 @@ const elements = {
   back: document.querySelector("#back-button"),
   theme: document.querySelector("#theme-button"),
   resetOrder: document.querySelector("#reset-order-button"),
+  exportOrder: document.querySelector("#export-order-button"),
   previousFile: document.querySelector("#previous-file-button"),
   nextFile: document.querySelector("#next-file-button"),
   tokenInput: document.querySelector("#token-input"),
@@ -92,7 +93,9 @@ async function openRepository(value) {
     const branch = encodeURIComponent(repo.default_branch);
     const tree = await github(`/repos/${parsed.fullName}/git/trees/${branch}?recursive=1`);
     currentRepo = repo;
-    renderRepository(repo, tree.tree || []);
+    const repositoryTree = tree.tree || [];
+    const canonicalOrder = await loadRepositoryOrder(repo, repositoryTree);
+    renderRepository(repo, repositoryTree, canonicalOrder);
     history.replaceState(null, "", `#${repo.full_name}`);
     const readme = (tree.tree || []).find((item) => item.type === "blob" && /^readme(\.md)?$/i.test(item.path));
     if (readme) await openFile(readme.path);
@@ -102,14 +105,16 @@ async function openRepository(value) {
   }
 }
 
-function renderRepository(repo, tree) {
+function renderRepository(repo, tree, canonicalOrder = []) {
   elements.welcome.hidden = true;
   elements.reader.hidden = false;
   elements.name.textContent = repo.name;
   elements.description.textContent = repo.description || "Sem descrição.";
   elements.meta.innerHTML = `<span>${escapeHtml(repo.language || "—")}</span><span>★ ${repo.stargazers_count}</span><span>${escapeHtml(repo.default_branch)}</span>`;
-  const files = tree.filter((item) => item.type === "blob").sort((a, b) => a.path.localeCompare(b.path));
-  currentFiles = applySavedOrder(files);
+  const files = tree
+    .filter((item) => item.type === "blob" && item.path !== ".repo-reader.json")
+    .sort((a, b) => a.path.localeCompare(b.path));
+  currentFiles = applySavedOrder(files, canonicalOrder);
   renderFileTree();
 }
 
@@ -161,12 +166,50 @@ function moveFile(index, direction) {
   updateNavigation();
 }
 
-function applySavedOrder(files) {
-  const saved = JSON.parse(localStorage.getItem(orderStorageKey()) || "[]");
+async function loadRepositoryOrder(repo, tree) {
+  const config = tree.find((item) => item.type === "blob" && item.path === ".repo-reader.json");
+  if (!config) return [];
+
+  try {
+    const file = await github(`/repos/${repo.full_name}/contents/.repo-reader.json?ref=${encodeURIComponent(repo.default_branch)}`);
+    const parsed = JSON.parse(decodeBase64(file.content || ""));
+    return Array.isArray(parsed.order) ? parsed.order.filter((path) => typeof path === "string") : [];
+  } catch (error) {
+    console.warn("Não foi possível ler .repo-reader.json:", error);
+    return [];
+  }
+}
+
+function applySavedOrder(files, canonicalOrder = []) {
+  let saved = [];
+  try {
+    saved = JSON.parse(localStorage.getItem(orderStorageKey()) || "[]");
+  } catch {
+    localStorage.removeItem(orderStorageKey());
+  }
+  const preferredOrder = Array.isArray(saved) && saved.length ? saved : canonicalOrder;
   const byPath = new Map(files.map((file) => [file.path, file]));
-  const ordered = saved.map((path) => byPath.get(path)).filter(Boolean);
+  const ordered = preferredOrder.map((path) => byPath.get(path)).filter(Boolean);
   const included = new Set(ordered.map((file) => file.path));
   return [...ordered, ...files.filter((file) => !included.has(file.path))];
+}
+
+function exportOrder() {
+  if (!currentRepo || !currentFiles.length) return;
+  const configuration = {
+    version: 1,
+    repository: currentRepo.full_name,
+    order: currentFiles.map((file) => file.path),
+  };
+  const blob = new Blob([`${JSON.stringify(configuration, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = ".repo-reader.json";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function orderStorageKey() { return `repo-reader-order:${currentRepo.full_name}`; }
@@ -267,10 +310,11 @@ elements.back.addEventListener("click", () => {
 
 elements.resetOrder.addEventListener("click", () => {
   currentFiles.sort((a, b) => a.path.localeCompare(b.path));
-  localStorage.removeItem(orderStorageKey());
+  saveOrder();
   renderFileTree();
   updateNavigation();
 });
+elements.exportOrder.addEventListener("click", exportOrder);
 
 elements.previousFile.addEventListener("click", () => openRelativeFile(-1));
 elements.nextFile.addEventListener("click", () => openRelativeFile(1));
