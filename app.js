@@ -307,7 +307,7 @@ function bindInternalLinks() {
 }
 
 function parseMarkdownTableRow(line) {
-  return line.trim().replace(/^\\||\\|$/g, "").split("|").map((cell) => cell.trim());
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
 }
 
 function extractMarkdownTables(source, tables) {
