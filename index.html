@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Uma interface minimalista para leitura de repositórios públicos e privados do GitHub." />
     <title>Repo Reader</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
   <body>
     <header class="topbar">
@@ -57,7 +57,10 @@
           <nav aria-label="Arquivos">
             <div class="tree-header">
               <div class="tree-title">Ordem de leitura</div>
-              <button id="reset-order-button" class="text-button" type="button" title="Restaurar ordem alfabética">Restaurar</button>
+              <div class="tree-actions">
+                <button id="export-order-button" class="text-button" type="button" title="Exportar ordem permanente">Exportar</button>
+                <button id="reset-order-button" class="text-button" type="button" title="Restaurar ordem alfabética">Restaurar</button>
+              </div>
             </div>
             <div id="file-tree" class="file-tree"></div>
           </nav>
@@ -78,6 +81,6 @@
       </section>
     </main>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
   </body>
 </html>
