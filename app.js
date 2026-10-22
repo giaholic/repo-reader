@@ -19,11 +19,17 @@ const elements = {
   resetOrder: document.querySelector("#reset-order-button"),
   previousFile: document.querySelector("#previous-file-button"),
   nextFile: document.querySelector("#next-file-button"),
+  tokenInput: document.querySelector("#token-input"),
+  connect: document.querySelector("#connect-button"),
+  disconnect: document.querySelector("#disconnect-button"),
+  connectionStatus: document.querySelector("#connection-status"),
+  connectionError: document.querySelector("#connection-error"),
 };
 
 let currentRepo = null;
 let currentFiles = [];
 let currentPath = null;
+let accessToken = sessionStorage.getItem("repo-reader-token") || "";
 
 function parseRepository(value) {
   const cleaned = value.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/, "").replace(/^\/+|\/+$/g, "");
@@ -33,11 +39,48 @@ function parseRepository(value) {
 }
 
 async function github(path) {
-  const response = await fetch(`${API}${path}`, { headers: { Accept: "application/vnd.github+json" } });
-  if (response.status === 404) throw new Error("Repositório ou arquivo não encontrado.");
-  if (response.status === 403) throw new Error("Limite da API do GitHub atingido. Tente novamente mais tarde.");
+  const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const response = await fetch(`${API}${path}`, { headers });
+  if (response.status === 401) throw new Error("O token é inválido ou expirou.");
+  if (response.status === 404) throw new Error(accessToken ? "Repositório não encontrado ou não autorizado para este token." : "Repositório não encontrado. Para repositórios privados, conecte um token de leitura.");
+  if (response.status === 403) throw new Error("Acesso negado ou limite da API do GitHub atingido.");
   if (!response.ok) throw new Error("Não foi possível consultar o GitHub.");
   return response.json();
+}
+
+async function connectGitHub() {
+  const candidate = elements.tokenInput.value.trim();
+  elements.connectionError.textContent = "";
+  if (!candidate) {
+    elements.connectionError.textContent = "Cole um token fine-grained para conectar.";
+    return;
+  }
+  const previous = accessToken;
+  accessToken = candidate;
+  elements.connect.disabled = true;
+  try {
+    const user = await github("/user");
+    sessionStorage.setItem("repo-reader-token", accessToken);
+    elements.tokenInput.value = "";
+    updateConnectionStatus(user.login);
+  } catch (error) {
+    accessToken = previous;
+    elements.connectionError.textContent = error.message;
+  } finally {
+    elements.connect.disabled = false;
+  }
+}
+
+function disconnectGitHub() {
+  accessToken = "";
+  sessionStorage.removeItem("repo-reader-token");
+  updateConnectionStatus();
+}
+
+function updateConnectionStatus(login = "") {
+  elements.connectionStatus.textContent = accessToken ? `Conectado${login ? ` como ${login}` : ""}` : "Acesso público";
+  elements.disconnect.hidden = !accessToken;
 }
 
 async function openRepository(value) {
@@ -231,6 +274,11 @@ elements.resetOrder.addEventListener("click", () => {
 
 elements.previousFile.addEventListener("click", () => openRelativeFile(-1));
 elements.nextFile.addEventListener("click", () => openRelativeFile(1));
+elements.connect.addEventListener("click", connectGitHub);
+elements.disconnect.addEventListener("click", disconnectGitHub);
+elements.tokenInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") connectGitHub();
+});
 
 elements.theme.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
@@ -239,6 +287,7 @@ elements.theme.addEventListener("click", () => {
 });
 
 document.documentElement.dataset.theme = localStorage.getItem("repo-reader-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+updateConnectionStatus();
 if (location.hash.length > 1) {
   elements.input.value = decodeURIComponent(location.hash.slice(1));
   openRepository(elements.input.value).catch((error) => { elements.error.textContent = error.message; setLoading(false); });
