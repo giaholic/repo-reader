@@ -306,10 +306,55 @@ function bindInternalLinks() {
   });
 }
 
+function parseMarkdownTableRow(line) {
+  return line.trim().replace(/^\\||\\|$/g, "").split("|").map((cell) => cell.trim());
+}
+
+function extractMarkdownTables(source, tables) {
+  const lines = source.split("\n");
+  const output = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const headerLine = lines[index];
+    const dividerLine = lines[index + 1] || "";
+    const header = parseMarkdownTableRow(headerLine);
+    const divider = parseMarkdownTableRow(dividerLine);
+    const isTable = headerLine.includes("|")
+      && divider.length === header.length
+      && divider.every((cell) => /^:?-{3,}:?$/.test(cell));
+
+    if (!isTable) {
+      output.push(headerLine);
+      continue;
+    }
+
+    const rows = [];
+    index += 2;
+    while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+      rows.push(parseMarkdownTableRow(lines[index]));
+      index += 1;
+    }
+    index -= 1;
+
+    const headings = header.map((cell) => "<th>" + cell + "</th>").join("");
+    const body = rows.map((row) => {
+      const cells = header.map((_, cellIndex) => "<td>" + (row[cellIndex] || "") + "</td>").join("");
+      return "<tr>" + cells + "</tr>";
+    }).join("");
+    const table = '<div class="table-scroll"><table><thead><tr>' + headings + "</tr></thead><tbody>" + body + "</tbody></table></div>";
+    const token = "%%TABLE" + tables.length + "%%";
+    tables.push(table);
+    output.push(token);
+  }
+
+  return output.join("\n");
+}
+
 function renderMarkdown(source) {
   const escaped = escapeHtml(source);
   const codeBlocks = [];
   const links = [];
+  const tables = [];
   let html = escaped.replace(/\x60\x60\x60([\w-]*)\n([\s\S]*?)\x60\x60\x60/g, (_, language, code) => {
     const token = "%%CODEBLOCK" + codeBlocks.length + "%%";
     codeBlocks.push("<pre><code" + (language ? ' data-language="' + language + '"' : "") + ">" + code.trimEnd() + "</code></pre>");
@@ -330,6 +375,8 @@ function renderMarkdown(source) {
     return token + trailing;
   });
 
+  html = extractMarkdownTables(html, tables);
+
   html = html
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
@@ -341,11 +388,14 @@ function renderMarkdown(source) {
     .replace(/\x60([^\x60]+)\x60/g, "<code>$1</code>")
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
     .split(/\n{2,}/)
-    .map((block) => /^(<h\d|<ul|<blockquote|%%CODEBLOCK)/.test(block) ? block : "<p>" + block.replace(/\n/g, "<br>") + "</p>")
+    .map((block) => /^(<h\d|<ul|<blockquote|%%CODEBLOCK|%%TABLE)/.test(block) ? block : "<p>" + block.replace(/\n/g, "<br>") + "</p>")
     .join("\n");
 
   codeBlocks.forEach((block, index) => {
     html = html.replace("<p>%%CODEBLOCK" + index + "%%</p>", block).replace("%%CODEBLOCK" + index + "%%", block);
+  });
+  tables.forEach((table, index) => {
+    html = html.replace("<p>%%TABLE" + index + "%%</p>", table).replace("%%TABLE" + index + "%%", table);
   });
   links.forEach((link, index) => {
     html = html.replace("%%LINK" + index + "%%", link);
