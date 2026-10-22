@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Uma interface minimalista para leitura de repositórios públicos do GitHub." />
+    <meta name="description" content="Uma interface minimalista para leitura de repositórios públicos e privados do GitHub." />
     <title>Repo Reader</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -13,14 +13,31 @@
         <span class="brand-mark" aria-hidden="true">R</span>
         <span>Repo Reader</span>
       </a>
-      <button id="theme-button" class="icon-button" type="button" aria-label="Alternar tema">◐</button>
+      <div class="topbar-actions">
+        <span id="connection-status" class="connection-status">Acesso público</span>
+        <button id="disconnect-button" class="text-button" type="button" hidden>Desconectar</button>
+        <button id="theme-button" class="icon-button" type="button" aria-label="Alternar tema">◐</button>
+      </div>
     </header>
 
     <main>
       <section id="welcome" class="welcome" aria-labelledby="welcome-title">
         <p class="eyebrow">Leitura sem distrações</p>
         <h1 id="welcome-title">Entenda um repositório,<br />arquivo por arquivo.</h1>
-        <p class="intro">Cole a URL de um repositório público do GitHub ou informe <code>owner/repo</code>.</p>
+        <p class="intro">Cole a URL de um repositório do GitHub ou informe <code>owner/repo</code>.</p>
+        <details class="access-panel">
+          <summary>Acessar repositório privado</summary>
+          <div class="access-content">
+            <label for="token-input">Fine-grained personal access token</label>
+            <div class="token-form">
+              <input id="token-input" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false" />
+              <button id="connect-button" type="button">Conectar</button>
+            </div>
+            <p>Use um token com acesso apenas aos repositórios selecionados e permissão <strong>Contents: Read-only</strong>. O token permanece somente nesta aba e é apagado ao fechá-la.</p>
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">Criar token no GitHub ↗</a>
+            <p id="connection-error" class="error" role="alert"></p>
+          </div>
+        </details>
         <form id="repo-form" class="repo-form">
           <label class="sr-only" for="repo-input">Repositório do GitHub</label>
           <input id="repo-input" name="repository" placeholder="github.com/owner/repository" autocomplete="off" required />
